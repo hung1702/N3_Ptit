@@ -1,8 +1,0 @@
-hưng:
-TK sa: 
-tên server: PHANTRUNGHUNG
-password: admin
-IP address: 192.168.192.86/24
-
-ZeroTier id phong: db64858fed604385 (hung gui)
-
