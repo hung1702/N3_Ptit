@@ -1,36 +1,33 @@
 package tacos.web;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
-//import javax.validation.Valid;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.client.RestTemplate;
+
 import lombok.extern.slf4j.Slf4j;
-import tacos.Taco;
-import tacos.data.IngredientRepository;
 import tacos.Ingredient;
 import tacos.Ingredient.Type;
+import tacos.Taco;
 
 @Slf4j
 @Controller
 @RequestMapping("/design")
 public class DesignTacoController {
-	private final IngredientRepository ingredientRepo;
-
-	@Autowired
-	public DesignTacoController(IngredientRepository ingredientRepo) {
-		this.ingredientRepo = ingredientRepo;
-	}
+	private RestTemplate rest = new RestTemplate();
 
 	@ModelAttribute
 	public void addIngredientsToModel(Model model) {
-		List<Ingredient> ingredients = new ArrayList<>();
-		ingredientRepo.findAll().forEach(ingredients::add);
+		List<Ingredient> ingredients = Arrays
+				.asList(rest.getForObject("http://localhost:8080/ingredients", Ingredient[].class));
 		Type[] types = Ingredient.Type.values();
 		for (Type type : types) {
 			model.addAttribute(type.toString().toLowerCase(), filterByType(ingredients, type));
@@ -53,22 +50,18 @@ public class DesignTacoController {
 	}
 
 	@PostMapping
-	public String processDesign(Taco taco) {
-		// Save the taco design...
-		// We'll do this later
-		log.info("Processing design: " + taco);
+	public String processDesign(@RequestParam("ingredients") String ingredientIds, @RequestParam("name") String name) {
+		List<Ingredient> ingredients = new ArrayList<Ingredient>();
+		for (String ingredientId : ingredientIds.split(",")) {
+			Ingredient ingredient = rest.getForObject("http://localhost:8080/ingredients/{id}", Ingredient.class,
+					ingredientId);
+			ingredients.add(ingredient);
+		}
+		Taco taco = new Taco();
+		taco.setName(name);
+		taco.setIngredients(ingredients);
+		System.out.println(taco);
+		rest.postForObject("http://localhost:8080/design", taco, Taco.class);
 		return "redirect:/orders/current";
 	}
-
-//	@PostMapping
-//	public String processDesign(@Valid Taco taco, Errors errors) {
-//		if (errors.hasErrors()) {
-//			return "design";
-//		}
-//		// Save the taco design...
-//		// We'll do this in later
-//		log.info("Processing design: " + taco);
-//		return "redirect:/orders/current";
-//	}
-
 }
